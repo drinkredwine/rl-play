@@ -1,5 +1,7 @@
 import random
 
+import numpy as np
+
 from rlearn.prototypes.environment import Environment
 
 
