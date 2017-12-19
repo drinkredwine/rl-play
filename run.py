@@ -10,4 +10,4 @@ if __name__ == '__main__':
 
     agent = MazeAgent()
     agent.learn(maze)
-    agent.go(maze, Q, 0)
+    agent.go(maze,  0)

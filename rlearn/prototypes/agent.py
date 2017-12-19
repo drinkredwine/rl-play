@@ -6,7 +6,7 @@ class Agent(object):
     Q = {}
     states = {}
     actions = {}
-    aplha_learning_rate = 0.1
+    alpha_learning_rate = 0.1
     gama = 0.1
     epsilon = 0.1
 

@@ -1,18 +1,14 @@
-import random
-from copy import copy
-from pprint import pprint
-
 import math
-import numpy as np
+import random
 from collections import defaultdict
+from copy import copy
 
-from rlearn.maze.maze_env import Maze
 from rlearn.prototypes.agent import Agent
 
-class MazeAgent(Agent):
 
-    def __init__(self):
-        pass
+class MazeAgent(Agent):
+    def __init__(self, Q: defaultdict = None):
+        self.Q = Q if Q else defaultdict(defaultdict)
 
     def get_best_action(self, Q, state, actions):
         max_reward = - math.inf
@@ -24,18 +20,19 @@ class MazeAgent(Agent):
 
         return best_action, max_reward
 
-    def learn(maze):
-        pprint(maze.show())
+    def get_Q(self):
+        return self.Q
 
+    def learn(self, maze):
+        Q = self.Q
         gama = 0.1
         alpha = 0.2
         epsilon = 0.4
 
         cost_per_step = 0.2
-        Q = defaultdict(defaultdict)
 
         for generation in range(1000):
-            state = 0#maze.initial_state()
+            state = 0  # maze.initial_state()
             energy = 10
 
             cum_reward = 0.0
@@ -62,20 +59,19 @@ class MazeAgent(Agent):
                 best_action, best_reward = self.get_best_action(Q, state_new, maze.actions())
                 Q[state][action] += alpha * (reward + gama * best_reward - Q[state][action])
 
-
                 state = copy(state_new)
                 if state == -1:
                     break
         return Q
 
-
-    def go(maze, Q, state=0):
+    def go(self, maze, state=0):
+        Q = self.Q
         energy = 20
         path = [state]
         actions = []
         print(state)
         cum_reward = 0.0
-        for iter in range(energy):
+        for iteration in range(energy):
             action, r = self.get_best_action(Q, state, maze.actions())
             state, reward = maze.change(state, action)
             cum_reward += reward
@@ -88,7 +84,6 @@ class MazeAgent(Agent):
 
         print(path)
         print(actions)
-
 
     def row_col(state, maze):
         return int(state / len(maze)), int(state % len(maze))
