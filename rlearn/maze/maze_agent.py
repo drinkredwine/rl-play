@@ -20,38 +20,29 @@ class MazeAgent(Agent):
 
         return best_action, max_reward
 
-    def get_Q(self):
-        return self.Q
-
-    def learn(self, maze):
+    def learn(self, maze, iterations: int = 1000):
         Q = self.Q
-        gama = 0.1
+        gama = 0.8  # higher value means that we prefer long term reward vs. short t34m
         alpha = 0.2
-        epsilon = 0.4
+        epsilon = 0.4  # higher means more exploration
 
-        cost_per_step = 0.2
+        memory = []
 
-        for generation in range(1000):
-            state = 0  # maze.initial_state()
+        for generation in range(iterations):
+            state = (0, 0)  # maze.initial_state()
             energy = 10
 
-            cum_reward = 0.0
             for iteration in range(energy):
                 if state not in Q:
                     Q[state] = {action: random.random() for action in maze.actions()}
 
-                # greedy select action
                 if random.random() < epsilon:
                     action = random.choice(maze.actions())
                 else:
-                    action, r = self.get_best_action(Q, state, maze.actions())
+                    action, _ = self.get_best_action(Q, state, maze.actions())
 
-                # if action not in Q[state]:
-                #     Q[state][action] = random.random()
-
-                # take action
                 state_new, reward = maze.change(state, action)
-                reward -= cost_per_step
+                memory.append([state, action, reward])
 
                 if state_new not in Q:
                     Q[state_new] = {action: random.random() for action in maze.actions()}
@@ -64,26 +55,27 @@ class MazeAgent(Agent):
                     break
         return Q
 
-    def go(self, maze, state=0):
+    def greedy_run(self, maze, state=0):
         Q = self.Q
         energy = 20
         path = [state]
         actions = []
-        print(state)
+
         cum_reward = 0.0
         for iteration in range(energy):
             action, r = self.get_best_action(Q, state, maze.actions())
             state, reward = maze.change(state, action)
             cum_reward += reward
-            if state < 0 or state > len(maze.show()) * len(maze.show()[0]):
-                break
-            print(state, action, reward)
+
             path.append(state)
             actions.append(action)
-            print(cum_reward)
 
-        print(path)
-        print(actions)
+            print(state, action, reward)
+            print("cumulative reward so far: ", cum_reward)
 
+        print("path:", path)
+        print("actions:",actions)
+
+    @staticmethod
     def row_col(state, maze):
         return int(state / len(maze)), int(state % len(maze))
