@@ -31,17 +31,21 @@ class MazeAgent(Agent):
 
     @staticmethod
     def _memory(reward, action, state, iteration):
-        return reward, action, state, iteration
+        return [reward, action, state, iteration]
 
     def learn(self, maze, iterations: int = 1000):
-        epsilon = 0.3  # higher means more exploration
-        energy = 20
+        epsilon = 0.5  # higher means more exploration
+        energy = 15
 
         for generation in tqdm(range(iterations)):
-            model = train_model(memory=self.memory)
+            a = len(self.memory)
+            if a > 1000:
+                a = 1000
+            model = train_model(memory=self.memory[-a:])
             state = (0, 0)  # maze.initial_state()
             cum_reward = 0.0
 
+            last_iteration = 0
             for iteration in range(energy):
                 if random.random() < epsilon:
                     action = random.choice(maze.actions())
@@ -49,12 +53,18 @@ class MazeAgent(Agent):
                     action, _ = self.get_best_action(model, state, maze.actions(), iteration)
 
                 state_new, reward = maze.change(state, action)
+                cum_reward += reward
 
-                self.memory.append((self._memory(reward, action, state, iteration)))
+                obs = self._memory(cum_reward, action, state, iteration)
+                self.memory.append(obs)
 
                 state = copy(state_new)
+                last_iteration = iteration
                 if state == (-1, -1):
                     break
+
+            for i in range(last_iteration):
+                self.memory[-i][0] = cum_reward
 
         pprint(self.memory)
         return model
