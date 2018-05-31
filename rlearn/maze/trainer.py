@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn import tree
+from sklearn.ensemble import RandomForestRegressor
 
 
 def state_to_predictors(observation):
@@ -30,7 +31,7 @@ def train_model(memory: list):
     X = np.array(data, dtype='float')
     y = list(map(lambda i: i[0], memory))
 
-    # clf = RandomForestRegressor()
+    #clf = RandomForestRegressor()
     clf = tree.DecisionTreeRegressor(max_depth=10)
     clf = clf.fit(X, y)
 

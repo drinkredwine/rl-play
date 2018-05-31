@@ -29,33 +29,46 @@ class MazeAgent(Agent):
 
         return best_action, max_reward
 
+
     @staticmethod
     def _memory(reward, action, state, iteration):
-        return [reward, action, state, iteration]
+        return [reward, action, state, 0]
 
-    def learn(self, maze, iterations: int = 1000):
+    def get_random_action(self, model, state, actions, iteration):
+        action = random.choice(actions)
+
+        obs = [self._memory(-1, action, state, iteration)]
+        reward, _ = list(score(obs, model))[0]
+
+        return action, reward
+
+    def learn(self, maze, iterations: int = 10000):
         epsilon = 0.5  # higher means more exploration
         energy = 15
-
+        gamma = 0.9
+        alpha = 0.4
+        model = train_model(memory=self.memory)
         for generation in tqdm(range(iterations)):
-            a = len(self.memory)
-            if a > 1000:
-                a = 1000
-            model = train_model(memory=self.memory[-a:])
+
+            if random.random() < 0.1:
+                model = train_model(memory=self.memory)
+
             state = (0, 0)  # maze.initial_state()
             cum_reward = 0.0
 
-            last_iteration = 0
             for iteration in range(energy):
+
                 if random.random() < epsilon:
-                    action = random.choice(maze.actions())
+                    action, qsa = self.get_random_action(model, state, maze.actions(), iteration)
                 else:
-                    action, _ = self.get_best_action(model, state, maze.actions(), iteration)
+                    action, qsa = self.get_best_action(model, state, maze.actions(), iteration)
 
                 state_new, reward = maze.change(state, action)
-                cum_reward += reward
+                _, best_q = self.get_best_action(model, state_new, maze.actions(), iteration)
 
-                obs = self._memory(cum_reward, action, state, iteration)
+                qsa = qsa + alpha * (reward + gamma * best_q - qsa)
+
+                obs = self._memory(qsa[0], action, state, iteration)
                 self.memory.append(obs)
 
                 state = copy(state_new)
@@ -63,8 +76,9 @@ class MazeAgent(Agent):
                 if state == (-1, -1):
                     break
 
-            for i in range(last_iteration):
-                self.memory[-i][0] = cum_reward
+            # long term reward
+            # for i in range(last_iteration):
+            #     self.memory[-i][0] = cum_reward
 
         pprint(self.memory)
         return model
@@ -77,6 +91,7 @@ class MazeAgent(Agent):
 
         cum_reward = 0.0
         for iteration in range(energy):
+
             action, r = self.get_best_action(model, state, maze.actions(), iteration)
             state, reward = maze.change(state, action)
             cum_reward += reward
