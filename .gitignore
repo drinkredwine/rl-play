@@ -4,3 +4,5 @@
 __pycache__/
 cenv/
 venv/
+.pytest_cache/
+rlearn/maze/.pytest_cache/
