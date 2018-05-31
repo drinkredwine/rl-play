@@ -2,11 +2,10 @@ import math
 import random
 from collections import defaultdict
 from copy import copy
-from pprint import pprint
 
 from tqdm import tqdm
 
-from rlearn.maze.trainer import train_model, score
+from rlearn.ml.trainer import train_model, score
 from rlearn.prototypes.agent import Agent
 
 
@@ -29,7 +28,6 @@ class MazeAgent(Agent):
 
         return best_action, max_reward
 
-
     @staticmethod
     def _memory(reward, action, state, iteration):
         return [reward, action, state, 0]
@@ -48,10 +46,16 @@ class MazeAgent(Agent):
         gamma = 0.9
         alpha = 0.4
 
-        for generation in tqdm(range(iterations)):
+        last_avg_rewards = 1
+        pbar = tqdm(range(iterations))
+        for generation in pbar:
 
             if generation == 0 or random.random() < 0.5:
-                model = train_model(memory=self.memory)
+                train_data = self.memory
+                if len(self.memory) > 1000:
+                    train_data = random.sample(train_data, 1000)
+
+                model = train_model(memory=train_data)
 
             state = (0, 0)  # maze.initial_state()
 
@@ -74,7 +78,17 @@ class MazeAgent(Agent):
                 if state == (-1, -1):
                     break
 
-        pprint(self.memory)
+            if generation % 100:
+                starts = [(0, 0), (0, 3), (1, 1), (2, 0), (2, 3)]
+                avg_rewards = 0
+
+                for start in starts:
+                    _, _, rewards = self.greedy_run(maze, start, model)
+                    avg_rewards += sum(rewards)
+                avg_rewards /= len(starts)
+
+                pbar.set_description("avg reward {}".format(avg_rewards))
+
         return model
 
     def greedy_run(self, maze, state, model):
@@ -82,23 +96,14 @@ class MazeAgent(Agent):
         energy = 20
         path = [state]
         actions = []
+        rewards = []
 
-        cum_reward = 0.0
         for iteration in range(energy):
-
             action, r = self.get_best_action(model, state, maze.actions(), iteration)
             state, reward = maze.change(state, action)
-            cum_reward += reward
 
+            rewards.append(reward)
             path.append(state)
             actions.append(action)
 
-            print(state, action, reward)
-            print("cumulative reward so far: ", cum_reward)
-
-        print("path:", path)
-        print("actions:", actions)
-
-    @staticmethod
-    def row_col(state, maze):
-        return int(state / len(maze)), int(state % len(maze))
+        return path, actions, rewards
