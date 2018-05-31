@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from rlearn.maze.maze_env import Maze
 from rlearn.maze.maze_agent_dt import MazeAgent
 if __name__ == '__main__':
