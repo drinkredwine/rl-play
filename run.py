@@ -1,5 +1,5 @@
 from rlearn.maze.maze_env import Maze
-from rlearn.maze.maze_agent import MazeAgent
+from rlearn.maze.maze_agent_dt import MazeAgent
 if __name__ == '__main__':
 
     maze = Maze([
@@ -9,5 +9,6 @@ if __name__ == '__main__':
     ])
 
     agent = MazeAgent()
-    agent.learn(maze)
-    agent.go(maze,  0)
+    clf = agent.learn(maze)
+    agent.greedy_run(maze, (0, 0), clf)
+    print(clf.feature_importances_)
