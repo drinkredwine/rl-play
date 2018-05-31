@@ -42,7 +42,7 @@ class MazeAgent(Agent):
 
         return action, reward
 
-    def learn(self, maze, iterations: int = 10000):
+    def learn(self, maze, iterations: int = 1000):
         epsilon = 0.5  # higher means more exploration
         energy = 15
         gamma = 0.9
@@ -50,7 +50,7 @@ class MazeAgent(Agent):
         model = train_model(memory=self.memory)
         for generation in tqdm(range(iterations)):
 
-            if random.random() < 0.1:
+            if random.random() < 0.2:
                 model = train_model(memory=self.memory)
 
             state = (0, 0)  # maze.initial_state()
