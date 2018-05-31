@@ -47,14 +47,13 @@ class MazeAgent(Agent):
         energy = 15
         gamma = 0.9
         alpha = 0.4
-        model = train_model(memory=self.memory)
+
         for generation in tqdm(range(iterations)):
 
-            if random.random() < 0.2:
+            if generation == 0 or random.random() < 0.5:
                 model = train_model(memory=self.memory)
 
             state = (0, 0)  # maze.initial_state()
-            cum_reward = 0.0
 
             for iteration in range(energy):
 
@@ -72,13 +71,8 @@ class MazeAgent(Agent):
                 self.memory.append(obs)
 
                 state = copy(state_new)
-                last_iteration = iteration
                 if state == (-1, -1):
                     break
-
-            # long term reward
-            # for i in range(last_iteration):
-            #     self.memory[-i][0] = cum_reward
 
         pprint(self.memory)
         return model
