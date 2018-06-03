@@ -1,68 +1,47 @@
 import numpy as np
-from sklearn import tree
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
 
 
-def state_to_predictors(observation):
-    """State to Features transformation and features construction
+def _feature_construction(features):
+    """Construct additional features"""
+    new_features = features
+    return new_features
 
-    (target, att1, att2, ..., attn)"""
 
-    r = []
-    for x in observation[1:]:
-        if type(x) in [list, tuple]:
-            for z in x:
-                try:
-                    r.append(float(z))
-                except:
-                    pass
+def train_model(X, y, model_type='regression', task_type='tree'):
+    if model_type == 'regression':
+        if task_type == 'tree':
+            clf = DecisionTreeRegressor()
         else:
-            try:
-                r.append(float(x))
-            except:
-                r.append(0.0)
+            clf = RandomForestRegressor()
+    else:
+        if task_type == 'tree':
+            clf = DecisionTreeClassifier()
+        else:
+            clf = RandomForestClassifier()
 
-    return np.array(r)
-
-
-def train_model(memory: list):
-    data = [state_to_predictors(x) for x in memory]
-
-    X = np.array(data, dtype='float')
-    y = list(map(lambda i: i[0], memory))
-
-    #clf = RandomForestRegressor()
-    clf = tree.DecisionTreeRegressor(max_depth=10)
     clf = clf.fit(X, y)
 
     return clf
 
 
-def score(memory: list, clf) -> float:
-    for o in memory:
-        oo = state_to_predictors(o)
-        yield clf.predict([oo]), oo[0]
-
-
-def test_state_to_predictors():
-    assert list(state_to_predictors((9.0, 1.0, 2.0, 3.0))) == [1.0, 2.0, 3.0]
-    assert list(state_to_predictors((9.0, (1.0, 1.1), 2.0, 3.0))) == [1.0, 1.1, 2.0, 3.0]
+def score(data: list, clf):
+    """Return scores for data """
+    print(data)
+    return clf.predict(data)
 
 
 def test_train():
-    memory = np.array([
-        (0.5, 1, 2.0, 1.0),
-        (2.5, 2, 2.0, 4.0)
-    ], dtype='float')
+    X = [(2.0, 1.0),
+         (2.0, 4.0)]
 
-    clf = train_model(memory)
+    y = [0.5, 2.5]
+    clf = train_model(X, y)
 
-    results = []
+    results = clf.predict(X)
 
-    for prediction in score(memory, clf):
-        results.append(prediction)
-
-    assert [(np.array([0.5]), 1.0), (np.array([2.5]), 2.0)] == results
+    assert sum(y) == sum(results)
 
 
 if __name__ == '__main__':
