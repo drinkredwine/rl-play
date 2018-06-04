@@ -1,5 +1,6 @@
 import math
 import random
+from collections import defaultdict
 
 import numpy as np
 from tqdm import tqdm
@@ -66,10 +67,12 @@ def get_action_and_expected_reward(model, state, actions):
     return action, qsa
 
 
-def learn(maze, Q, iterations: int = 1000):
+def learn(maze, iterations: int = 1000):
     gama = 0.8  # higher value means that we prefer long term reward vs. short t34m
     alpha = 0.2
     epsilon = 0.4  # higher means more exploration
+
+    Q = defaultdict(defaultdict)
 
     meta['iterations'] = iterations
     meta['policy'] = 'epsilon'

@@ -1,35 +1,35 @@
 import math
+import random
+from collections import defaultdict
 
-# import random
 import numpy as np
 from tqdm import tqdm
-
-from rlearn.ml.trainer import train_model
 
 meta = {}
 
 
-def obs(state, action):
-    """Construct observation from state and action"""
-    x = [i for i in state]
-    x.append(action)
-    return x
-
-
-def construct_features(obs: list):
-    """Construct new features."""
-    return obs
-
-
-def get_best_action(model, state, actions):
-    """Get the best action in current state by model"""
-    data = [obs(state, action) for action in actions]
+def get_best_action(Q, state, actions):
+    """Get the best action in current state by Q table lookup"""
 
     max_reward = - math.inf
     best_action = actions[0]  # np.random.choice(actions)
-    for reward, action in zip(model.predict(data), actions):
-        if reward > max_reward:
-            max_reward = reward
+
+    for action in actions:
+        if action in Q[state] and Q[state][action] and Q[state][action] > max_reward:
+            max_reward = Q[state][action]
+            best_action = action
+    return best_action
+
+
+def get_best_action_double(Q, state, actions):
+    """Get the best action in current state by Q table lookup"""
+
+    max_reward = - math.inf
+    best_action = actions[0]  # np.random.choice(actions)
+
+    for action in actions:
+        if action in Q[0][state] and action in Q[1][state] and Q[0][state][action] + Q[1][state][action] > max_reward:
+            max_reward = Q[0][state][action] + Q[1][state][action]
             best_action = action
 
     return best_action
@@ -40,30 +40,28 @@ def get_random_action(actions, p=None):
     return np.random.choice(actions, p=p)
 
 
-def estimate_reward(model, state, action):
-    """Returns estimated reward for give action and state) by model"""
-    X = [obs(state, action)]
-    return model.predict(X)
+def estimate_reward(Q: dict, state, action):
+    """Returns estimated reward for give action and state) by Q table lookup"""
+    return Q.get(state, {}).get(action, np.random.random())
 
 
-def get_action_softmax(model, state, actions, t=1):
+def get_action_softmax(Q, state, actions, t=1):
     """Softmax - the probabilistic pick based on quality of action"""
-    data = [obs(state, action) for action in actions]
-    scores = model.predict(data)
 
+    scores = Q[state]
     p = map(lambda x: math.exp(x / t), scores)
     total = sum(p)
     p = map(lambda x: x / total, p)
 
-    return get_random_action(model, state, actions, p)
+    return get_random_action(Q, state, actions, p)
 
 
-def get_action_epsilon(model, state, actions, epsilon=0.5):
+def get_action_epsilon(Q, state, actions, epsilon=0.5):
     """Epsilon - random action if epsilon < random(0,1) otherwise the best valued action"""
     if np.random.random() < epsilon:
         action = get_random_action(actions)
     else:
-        action = get_best_action(model, state, actions)
+        action, _ = get_best_action(Q, state, actions)
     return action
 
 
@@ -78,77 +76,56 @@ def get_action(model, state, actions):
     elif policy == 'softmax':
         action = get_action_softmax(model, state, actions, temperature)
 
-    return action
+    qsa = estimate_reward(model, state, action)
+
+    return action, qsa
 
 
 def learn(maze, iterations: int = 1000):
-    energy_capacity = 15
-    gamma = 0.7
-    alpha = 0.4
+    q = [defaultdict(defaultdict), defaultdict(defaultdict)]
 
-    initial_state = (0, 0)
-    X1 = list()
-    y1 = list()
-    X1.append(obs(initial_state, 0))
-    y1.append(0)
-    X2 = list()
-    y2 = list()
-    X2.append(obs(initial_state, 0))
-    y2.append(0)
+    gama = 0.8  # higher value means that we prefer long term reward vs. short t34m
+    alpha = 0.2
+    epsilon = 0.4  # higher means more exploration
 
     meta['iterations'] = iterations
     meta['policy'] = 'epsilon'
 
-    model1 = train_model(X1, y2)
-    model2 = train_model(X1, y2)
-
     for generation in tqdm(range(iterations)):
         meta['generation'] = generation
 
-        if np.random.random() < 0.2:
-            if np.random.random() < 0.5:
-                model1 = train_model(X1, y1)
+        state = (0, 0)  # maze.initial_state()
+        energy = 10
+
+        for iteration in range(energy):
+            for Q in q:
+                if state not in Q:
+                    Q[state] = {action: np.random.random() for action in maze.actions}
+
+            if random.random() < epsilon:
+                action = np.random.choice(maze.actions)
             else:
-                model2 = train_model(X2, y2)
+                action = get_best_action_double(q, state, maze.actions)
 
-        energy = energy_capacity
-        state = initial_state
-        done = False
+            state_new, reward = maze.change(state, action)
 
-        while not done:
-
-            action = get_action(model1, state, maze.actions)  # take decision
-            state_new, reward = maze.change(state, action)  # take action
+            for Q in q:
+                if state_new not in Q:
+                    Q[state_new] = {action: random.random() for action in maze.actions}
 
             if np.random.random() < 0.5:
-                qsa = estimate_reward(model1, state, action)
-                best_action = get_best_action(model1, state_new, maze.actions)  # what best can happen in new state?
-                best_q = estimate_reward(model2, state_new, best_action) # what best can happen in new state?
-
-                qsa = qsa + alpha * (reward + gamma * best_q - qsa)
-
-                X1.append(obs(state, action))  # remember state and action
-                y1.append(qsa)  # next time predict this expected reward
-
+                best_action = get_best_action(q[0], state_new, maze.actions)
+                best_reward = estimate_reward(q[1], state_new, best_action)
+                q[0][state][action] += alpha * (reward + gama * best_reward - q[0][state][action])
             else:
-                qsa = estimate_reward(model2, state, action)
+                best_action = get_best_action(q[1], state_new, maze.actions)
+                best_reward = estimate_reward(q[0], state_new, best_action)
+                q[1][state][action] += alpha * (reward + gama * best_reward - q[1][state][action])
 
-                best_action = get_best_action(model2, state_new, maze.actions)  # what best can happen in new state?
-
-                best_q = estimate_reward(model1, state_new, best_action) # what best can happen in new state?
-
-                qsa = qsa + alpha * (reward + gamma * best_q - qsa)  # update reward estimate for old state
-
-                X2.append(obs(state, action))  # remember state and action
-                y2.append(qsa)  # next time predict this expected reward
-
-            state = state_new  # move on
-
-            energy -= 1
-            if reward < 0 or energy == 0:  # terminal state
-                done = True
-
-    return model1
+            state = state_new
+            if state == -1:
+                break
+    return q
 
 
 def run(maze, state, model, greedy=False):
@@ -159,7 +136,7 @@ def run(maze, state, model, greedy=False):
 
     for iteration in range(energy):
         if greedy:
-            action = get_best_action(model, state, maze.actions)
+            action = get_best_action_double(model, state, maze.actions)
         else:
             action = get_action(model, state, maze.actions)
 

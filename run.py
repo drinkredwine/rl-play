@@ -4,6 +4,8 @@ from collections import defaultdict
 from rlearn.maze.maze_env import Maze
 import rlearn.maze.maze_agent as agent
 #import rlearn.maze.maze_agent_dt as agent
+#import rlearn.maze.maze_agent_double as agent
+
 
 if __name__ == '__main__':
 
@@ -13,10 +15,10 @@ if __name__ == '__main__':
         [3, 0, 4, 1],
     ])
 
-    model = defaultdict(defaultdict)
-    model = agent.learn(maze, model, iterations=1000)
+    #model = defaultdict(defaultdict)
+    model = agent.learn(maze, iterations=1000)
 
-    for greedy in [True, False]:
+    for greedy in [True]:
         for start in [(0, 0), (0, 3), (1, 1), (2, 0), (2, 3)]:
             path, actions, rewards = agent.run(maze, start, model, greedy=greedy)
             print("greedy", greedy)
