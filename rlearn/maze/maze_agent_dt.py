@@ -83,7 +83,7 @@ def get_action_and_expected_reward(model, state, actions):
     return action, qsa
 
 
-def learn(maze, model, iterations: int = 1000):
+def learn(maze, iterations: int = 1000):
     energy_capacity = 15
     gamma = 0.9
     alpha = 0.4
